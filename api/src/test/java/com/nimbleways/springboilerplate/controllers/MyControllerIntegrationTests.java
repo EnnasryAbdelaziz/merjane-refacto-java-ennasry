@@ -79,6 +79,8 @@ public class MyControllerIntegrationTests {
         }
 
 
+      //ADDED BY MAINTAINER ENNASRY ABDELAZIZ
+
    //NORMAL avec stock disponible
     @Test
     void shouldDecrementAvailableForNormalProduct() throws Exception {
