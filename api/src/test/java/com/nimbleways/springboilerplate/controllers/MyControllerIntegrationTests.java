@@ -77,7 +77,7 @@ public class MyControllerIntegrationTests {
                                 LocalDate.now().plusDays(240)));
                 return products;
         }
-//ADDED BY MAINTAINER ENNASRY ABDELAZIZ
+
 
    //NORMAL avec stock disponible
     @Test
@@ -140,7 +140,7 @@ public class MyControllerIntegrationTests {
                 10,
                 5,
                 "EXPIRABLE",
-                "PHONE",
+                "Butter",
                 LocalDate.now().plusDays(10),
                 null,
                 null);
@@ -167,7 +167,7 @@ public class MyControllerIntegrationTests {
                 10,
                 5,
                 "EXPIRABLE",
-                "CABLE",
+                "Milk",
                 LocalDate.now().minusDays(1),
                 null,
                 null);
@@ -194,7 +194,7 @@ public class MyControllerIntegrationTests {
                 8,
                 10,
                 "SEASONAL",
-                "TV",
+                "Watermelon",
                 null,
                 LocalDate.now().minusDays(5),
                 LocalDate.now().plusDays(5));
@@ -221,7 +221,7 @@ public class MyControllerIntegrationTests {
                 8,
                 10,
                 "SEASONAL",
-                "HEADPHONES",
+                "Grapes",
                 null,
                 LocalDate.now().plusDays(10),
                 LocalDate.now().plusDays(20));
@@ -239,7 +239,7 @@ public class MyControllerIntegrationTests {
         assertEquals(8, updated.getAvailable());
     }
 
-    // Verifier le traitement global de ton dataset actuel
+    // V�rifier le traitement global de ton dataset actuel
     @Test
     void shouldProcessAllProductsAccordingToBusinessRules() throws Exception {
 
