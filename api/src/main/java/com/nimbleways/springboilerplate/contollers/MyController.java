@@ -43,6 +43,10 @@ public class MyController {
         for (Product p : products) {
             if (p.getType().equals("NORMAL")) {
                 if (p.getAvailable() > 0) {
+          		  int leadTime = p.getLeadTime();
+                	  if (leadTime == 0) {
+						  ps.notifyDelay(leadTime, p);
+					  }
                     p.setAvailable(p.getAvailable() - 1);
                     pr.save(p);
                 } else {

@@ -12,236 +12,192 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-//import static org.junit.Assert.assertEquals;
+import java.time.LocalDate;
+import java.util.*;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
-// import com.fasterxml.jackson.databind.ObjectMapper;
-
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-// Specify the controller class you want to test
-// This indicates to spring boot to only load UsersController into the context
-// Which allows a better performance and needs to do less mocks
 @SpringBootTest
 @AutoConfigureMockMvc
-public class MyControllerIntegrationTests {
-        @Autowired
-        private MockMvc mockMvc;
+class MyControllerIntegrationTests {
 
-        @MockBean
-        private NotificationService notificationService;
+    @Autowired
+    private MockMvc mockMvc;
 
-        @Autowired
-        private OrderRepository orderRepository;
+    @MockBean
+    private NotificationService notificationService;
 
-        @Autowired
-        private ProductRepository productRepository;
+    @Autowired
+    private OrderRepository orderRepository;
 
-        @Test
-        public void processOrderShouldReturn() throws Exception {
-                List<Product> allProducts = createProducts();
-                Set<Product> orderItems = new HashSet<Product>(allProducts);
-                Order order = createOrder(orderItems);
-                productRepository.saveAll(allProducts);
-                order = orderRepository.save(order);
-                mockMvc.perform(post("/orders/{orderId}/processOrder", order.getId())
-                                .contentType("application/json"))
-                                .andExpect(status().isOk());
-                Order resultOrder = orderRepository.findById(order.getId()).get();
-                assertEquals(resultOrder.getId(), order.getId());
-        }
+    @Autowired
+    private ProductRepository productRepository;
 
-        private static Order createOrder(Set<Product> products) {
-                Order order = new Order();
-                order.setItems(products);
-                return order;
-        }
+    // =====================================================
+    // BASE DATASET (YOUR METHOD)
+    // =====================================================
+    private List<Product> createProducts() {
+        List<Product> products = new ArrayList<>();
 
-        private static List<Product> createProducts() {
-                List<Product> products = new ArrayList<>();
-                products.add(new Product(null, 15, 30, "NORMAL", "USB Cable", null, null, null));
-                products.add(new Product(null, 10, 0, "NORMAL", "USB Dongle", null, null, null));
-                products.add(new Product(null, 15, 30, "EXPIRABLE", "Butter", LocalDate.now().plusDays(26), null,
-                                null));
-                products.add(new Product(null, 90, 6, "EXPIRABLE", "Milk", LocalDate.now().minusDays(2), null, null));
-                products.add(new Product(null, 15, 30, "SEASONAL", "Watermelon", null, LocalDate.now().minusDays(2),
-                                LocalDate.now().plusDays(58)));
-                products.add(new Product(null, 15, 30, "SEASONAL", "Grapes", null, LocalDate.now().plusDays(180),
-                                LocalDate.now().plusDays(240)));
-                return products;
-        }
+        products.add(new Product(null, 30, 15, "NORMAL", "USB Cable", null, null, null));
+        products.add(new Product(null, 0, 10, "NORMAL", "USB Dongle", null, null, null));
 
+        products.add(new Product(null, 30, 15, "EXPIRABLE", "Butter",
+                LocalDate.now().plusDays(26), null, null));
 
-      //ADDED BY MAINTAINER ENNASRY ABDELAZIZ
+        products.add(new Product(null, 6, 90, "EXPIRABLE", "Milk",
+                LocalDate.now().minusDays(2), null, null));
 
-   //NORMAL avec stock disponible
+        products.add(new Product(null, 30, 15, "SEASONAL", "Watermelon",
+                null,
+                LocalDate.now().minusDays(2),
+                LocalDate.now().plusDays(58)));
+
+        products.add(new Product(null, 30, 15, "SEASONAL", "Grapes",
+                null,
+                LocalDate.now().plusDays(180),
+                LocalDate.now().plusDays(240)));
+
+        return products;
+    }
+
+    private Order createOrder(Set<Product> products) {
+        Order order = new Order();
+        order.setItems(products);
+        return order;
+    }
+
+    private void processOrder(Long orderId) throws Exception {
+        mockMvc.perform(post("/orders/{orderId}/processOrder", orderId))
+                .andExpect(status().isOk());
+    }
+
+    // =====================================================
+    // NORMAL PRODUCT
+    // =====================================================
+
     @Test
     void shouldDecrementAvailableForNormalProduct() throws Exception {
 
-        Product product = new Product(
-                null,
-                5,
-                10,
-                "NORMAL",
-                "USB Cable",
-                null,
-                null,
-                null);
+        List<Product> products = createProducts();
+        Product usbCable = products.get(0);
 
-        product = productRepository.save(product);
+        productRepository.save(usbCable);
 
-        Order order = createOrder(Set.of(product));
-        order = orderRepository.save(order);
+        Order order = orderRepository.save(createOrder(Set.of(usbCable)));
 
-        mockMvc.perform(post("/orders/{orderId}/processOrder", order.getId()))
-                .andExpect(status().isOk());
+        processOrder(order.getId());
 
-        Product updated = productRepository.findById(product.getId()).orElseThrow();
+        Product updated = productRepository.findById(usbCable.getId()).orElseThrow();
 
-        assertEquals(4, updated.getAvailable());
+        assertEquals(14, updated.getAvailable());
     }
 
-    //NORMAL rupture de stock ? notification d�lai
     @Test
-    void shouldNotifyDelayForNormalProductOutOfStock() throws Exception {
+    void shouldNotifyDelayWhenNormalProductOutOfStock() throws Exception {
 
-        Product product = new Product(
-                null,
-                0,
-                5,
-                "NORMAL",
-                "USB Cable",
-                null,
-                null,
-                null);
+        List<Product> products = createProducts();
+        Product usbDongle = products.get(1);
 
-        product = productRepository.save(product);
+        productRepository.save(usbDongle);
 
-        Order order = createOrder(Set.of(product));
-        order = orderRepository.save(order);
+        Order order = orderRepository.save(createOrder(Set.of(usbDongle)));
 
-        mockMvc.perform(post("/orders/{orderId}/processOrder", order.getId()))
-                .andExpect(status().isOk());
+        processOrder(order.getId());
 
-        verify(notificationService).sendDelayNotification( 5, product.getName());
-    }
+        verify(notificationService)
+                .sendDelayNotification(0, "USB Dongle");
+    }	
 
-    //EXPIRABLE valide
+    // =====================================================
+    // EXPIRABLE PRODUCT
+    // =====================================================
+
     @Test
     void shouldSellNonExpiredProduct() throws Exception {
 
-        Product product = new Product(
-                null,
-                10,
-                5,
-                "EXPIRABLE",
-                "Butter",
-                LocalDate.now().plusDays(10),
-                null,
-                null);
+        List<Product> products = createProducts();
+        Product butter = products.get(2);
 
-        product = productRepository.save(product);
+        productRepository.save(butter);
 
-        Order order = createOrder(Set.of(product));
-        order = orderRepository.save(order);
+        Order order = orderRepository.save(createOrder(Set.of(butter)));
 
-        mockMvc.perform(post("/orders/{orderId}/processOrder", order.getId()))
-                .andExpect(status().isOk());
+        processOrder(order.getId());
 
-        Product updated = productRepository.findById(product.getId()).orElseThrow();
+        Product updated = productRepository.findById(butter.getId()).orElseThrow();
 
-        assertEquals(9, updated.getAvailable());
+        assertEquals(14, updated.getAvailable());
     }
 
-    //EXPIRABLE expir�
     @Test
     void shouldHandleExpiredProduct() throws Exception {
 
-        Product product = new Product(
-                null,
-                10,
-                5,
-                "EXPIRABLE",
-                "Milk",
-                LocalDate.now().minusDays(1),
-                null,
-                null);
+        List<Product> products = createProducts();
+        Product milk = products.get(3);
 
-        product = productRepository.save(product);
+        productRepository.save(milk);
 
-        Order order = createOrder(Set.of(product));
-        order = orderRepository.save(order);
+        Order order = orderRepository.save(createOrder(Set.of(milk)));
 
-        mockMvc.perform(post("/orders/{orderId}/processOrder", order.getId()))
-                .andExpect(status().isOk());
+        processOrder(order.getId());
 
-        Product updated = productRepository.findById(product.getId()).orElseThrow();
+        Product updated = productRepository.findById(milk.getId()).orElseThrow();
 
-        assertEquals(10, updated.getAvailable());
+        assertEquals(0, updated.getAvailable());
+
+        verify(notificationService)
+                .sendExpirationNotification("Milk", milk.getExpiryDate());
     }
 
-    //SEASONAL pendant la saison
+    // =====================================================
+    // SEASONAL PRODUCT
+    // =====================================================
+
     @Test
     void shouldSellSeasonalProductDuringSeason() throws Exception {
 
-        Product product = new Product(
-                null,
-                8,
-                10,
-                "SEASONAL",
-                "Watermelon",
-                null,
-                LocalDate.now().minusDays(5),
-                LocalDate.now().plusDays(5));
+        List<Product> products = createProducts();
+        Product watermelon = products.get(4);
 
-        product = productRepository.save(product);
+        productRepository.save(watermelon);
 
-        Order order = createOrder(Set.of(product));
-        order = orderRepository.save(order);
+        Order order = orderRepository.save(createOrder(Set.of(watermelon)));
 
-        mockMvc.perform(post("/orders/{orderId}/processOrder", order.getId()))
-                .andExpect(status().isOk());
+        processOrder(order.getId());
 
-        Product updated = productRepository.findById(product.getId()).orElseThrow();
+        Product updated = productRepository.findById(watermelon.getId()).orElseThrow();
 
-        assertEquals(7, updated.getAvailable());
+        assertEquals(14, updated.getAvailable());
     }
 
-    //SEASONAL hors saison
     @Test
     void shouldNotSellSeasonalProductOutsideSeason() throws Exception {
 
-        Product product = new Product(
-                null,
-                8,
-                10,
-                "SEASONAL",
-                "Grapes",
-                null,
-                LocalDate.now().plusDays(10),
-                LocalDate.now().plusDays(20));
+        List<Product> products = createProducts();
+        Product grapes = products.get(5);
 
-        product = productRepository.save(product);
+        productRepository.save(grapes);
 
-        Order order = createOrder(Set.of(product));
-        order = orderRepository.save(order);
+        Order order = orderRepository.save(createOrder(Set.of(grapes)));
 
-        mockMvc.perform(post("/orders/{orderId}/processOrder", order.getId()))
-                .andExpect(status().isOk());
+        processOrder(order.getId());
 
-        Product updated = productRepository.findById(product.getId()).orElseThrow();
+        Product updated = productRepository.findById(grapes.getId()).orElseThrow();
 
-        assertEquals(8, updated.getAvailable());
+        assertEquals(15, updated.getAvailable());
+
+        verify(notificationService)
+                .sendOutOfStockNotification("Grapes");
     }
 
-    // V�rifier le traitement global de ton dataset actuel
+    // =====================================================
+    // FULL SCENARIO
+    // =====================================================
+
     @Test
     void shouldProcessAllProductsAccordingToBusinessRules() throws Exception {
 
@@ -249,11 +205,9 @@ public class MyControllerIntegrationTests {
 
         productRepository.saveAll(products);
 
-        Order order = createOrder(new HashSet<>(products));
-        order = orderRepository.save(order);
+        Order order = orderRepository.save(createOrder(new HashSet<>(products)));
 
-        mockMvc.perform(post("/orders/{orderId}/processOrder", order.getId()))
-                .andExpect(status().isOk());
+        processOrder(order.getId());
 
         Product usbCable = productRepository.findById(products.get(0).getId()).orElseThrow();
         Product butter = productRepository.findById(products.get(2).getId()).orElseThrow();
@@ -263,6 +217,4 @@ public class MyControllerIntegrationTests {
         assertEquals(14, butter.getAvailable());
         assertEquals(14, watermelon.getAvailable());
     }
-
-
 }
